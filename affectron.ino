@@ -53,10 +53,14 @@ enum HugState {
 
 /*
  * This is the target length of time loop() should take to run, in milliseconds.
- * LOOP_MS should be at least as large as ECHO_TIMEOUT_US / 1000, as it can take up to that
+ * 
+ * LOOP_CHARGE_MS should be at least as large as ECHO_TIMEOUT_US / 1000, as it can take up to that
  * much time to read a pulse off.
+ * 
+ * LOOP_MS can be shorter than LOOP_CHARGE_MS by ECHO_TIMEOUT_US / 1000.
  */
-#define LOOP_MS 50
+#define LOOP_CHARGE_MS 50
+#define LOOP_MS 10
 
 double distance = 0.0;
 double power = 0.0;
@@ -92,26 +96,35 @@ double measureDistance() {
   return constrain(distance, 0, 200.0);
 }
 
-void updateHugPowerAndState(double distance) {
+long getLoopMs() {
   if (state == CHARGE) {
+    return LOOP_CHARGE_MS;
+  }
+  return LOOP_MS;
+}
+
+void updateHugPowerAndState() {
+  long loopMs = getLoopMs();
+  if (state == CHARGE) {
+    distance = measureDistance();
     if (distance <= 0 || distance > HUG_THRESHOLD) {
-      power -= 1.0 * LOOP_MS / HUG_DISCHARGE_MS;
+      power -= 1.0 * loopMs / HUG_DISCHARGE_MS;
     } else {
-      power += 1.0 * LOOP_MS / HUG_CHARGE_MS;
+      power += 1.0 * loopMs / HUG_CHARGE_MS;
     }
     power = constrain(power, 0, 1);
     if (power == 1) {
       state = ACTIVE;
     }
   } else if (state == ACTIVE) {
-    power -= 1.0 * LOOP_MS / HUG_ACTIVE_MS;
+    power -= 1.0 * loopMs / HUG_ACTIVE_MS;
     power = constrain(power, 0, 1);
     if (power == 0) {
       power = 1;
       state = COOLDOWN;
     }
   } else { // state == COOLDOWN
-    power -= 1.0 * LOOP_MS / HUG_COOLDOWN_MS;
+    power -= 1.0 * loopMs / HUG_COOLDOWN_MS;
     power = constrain(power, 0, 1);
     if (power == 0) {
       state = CHARGE;
@@ -139,8 +152,11 @@ void displayHugPowerAndState() {
     k = power * NEOPIXEL_NUM_PIXELS;
   }
   for (int i = 0; i < NEOPIXEL_NUM_PIXELS; i++) {
-    if (i < k) {
+    if (i < k - 1) {
       strip.setPixelColor(i, r, g, b);
+    } else if (i < k) {
+      double f = k - i;
+      strip.setPixelColor(i, f * r, f * g, f * b);
     } else {
       strip.setPixelColor(i, 0, 0, 0);
     }
@@ -149,8 +165,9 @@ void displayHugPowerAndState() {
 }
 
 long endOfLoopDelay() {
+  long loopMs = getLoopMs();
   long elapsed = millis() - startOfLastLoop;
-  long delayMs = LOOP_MS - elapsed;
+  long delayMs = loopMs - elapsed;
   if (delayMs > 0) {
     delay(delayMs);
   }
@@ -159,8 +176,7 @@ long endOfLoopDelay() {
 }
 
 void loop() {
-  distance = measureDistance();
-  updateHugPowerAndState(distance);
+  updateHugPowerAndState();
   displayHugPowerAndState();
   endOfLoopDelay();
   //sprintf(buf, "%d %d %d %ld", (int) distance, (int) (power * 100), state, elapsed);
