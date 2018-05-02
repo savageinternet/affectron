@@ -65,6 +65,7 @@ enum HugState {
 double distance = 0.0;
 double power = 0.0;
 HugState state = CHARGE;
+long activeTwinkle[NEOPIXEL_NUM_PIXELS];
 long startOfLastLoop = 0l;
 
 char buf[80];
@@ -76,6 +77,10 @@ void setup() {
   strip.setBrightness(24);
   strip.begin();
   strip.show();
+
+  for (int i = 0; i < NEOPIXEL_NUM_PIXELS; i++) {
+    activeTwinkle[i] = random(900, 1200);
+  }
 }
 
 /*
@@ -132,25 +137,8 @@ void updateHugPowerAndState() {
   }
 }
 
-void displayHugPowerAndState() {
-  int r, g, b;
-  double k;
-  if (state == CHARGE) {
-    r = 0;
-    g = 0;
-    b = 255;
-    k = power * NEOPIXEL_NUM_PIXELS;
-  } else if (state == ACTIVE) {
-    r = 0;
-    g = 255;
-    b = 0;
-    k = NEOPIXEL_NUM_PIXELS;
-  } else { // state == COOLDOWN
-    r = 255;
-    g = 0;
-    b = 0;
-    k = power * NEOPIXEL_NUM_PIXELS;
-  }
+void displayPowerMeter(int r, int g, int b) {
+  double k = power * NEOPIXEL_NUM_PIXELS;
   for (int i = 0; i < NEOPIXEL_NUM_PIXELS; i++) {
     if (i < k - 1) {
       strip.setPixelColor(i, r, g, b);
@@ -160,6 +148,29 @@ void displayHugPowerAndState() {
     } else {
       strip.setPixelColor(i, 0, 0, 0);
     }
+  }
+}
+
+void displayActiveAnimation() {
+  long now = millis();
+  for (int i = 0; i < NEOPIXEL_NUM_PIXELS; i++) {
+    
+    float theta = 2.0 * M_PI * now / activeTwinkle[i];
+    double f = (sin(theta) + 1) / 2;
+    int r = 255;
+    int g = f * 105;
+    int b = f * 180;
+    strip.setPixelColor(i, r, g, b);
+  }
+}
+
+void displayHugPowerAndState() {
+  if (state == CHARGE) {
+    displayPowerMeter(0, 255 * power, 255 * (1 - power));
+  } else if (state == ACTIVE) {
+    displayActiveAnimation();
+  } else { // state == COOLDOWN
+    displayPowerMeter(255 * (0.75 + 0.25 * power), 0, 0);
   }
   strip.show();
 }
