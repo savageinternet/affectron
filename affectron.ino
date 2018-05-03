@@ -1,4 +1,5 @@
 #include <Adafruit_NeoPixel.h>
+#include <Servo.h>
 
 // ULTRASONIC RANGE SENSOR
 
@@ -36,7 +37,7 @@
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NEOPIXEL_NUM_PIXELS, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
-// HUG MECHANICS
+// HUG STATE MACHINE
 
 enum HugState {
   CHARGE,
@@ -44,10 +45,22 @@ enum HugState {
   COOLDOWN
 };
 
+#define BREATHE_MS 5000
+
 #define HUG_CHARGE_MS 1500
 #define HUG_DISCHARGE_MS 3000
 #define HUG_ACTIVE_MS 3000
 #define HUG_COOLDOWN_MS 6000
+
+// HUG KINEMATICS
+
+#define SERVO_PIN A0
+#define SERVO_PWM_MIN 1100
+#define SERVO_PWM_MAX 1900
+
+Servo testServo;
+
+// LOOP TIMING
 
 #define HUG_THRESHOLD 30
 
@@ -57,18 +70,25 @@ enum HugState {
  * LOOP_CHARGE_MS should be at least as large as ECHO_TIMEOUT_US / 1000, as it can take up to that
  * much time to read a pulse off.
  * 
- * LOOP_MS can be shorter than LOOP_CHARGE_MS by ECHO_TIMEOUT_US / 1000.
+ * LOOP_MS can be shorter than LOOP_CHARGE_MS, but we still need some time to send NeoPixel data
+ * and update the servo position.
  */
 #define LOOP_CHARGE_MS 50
-#define LOOP_MS 10
+#define LOOP_MS 15
+
+// GLOBAL VARIABLES
 
 double distance = 0.0;
 double power = 0.0;
 HugState state = CHARGE;
+long activeServosLast = 0;
+boolean cooldownServosStarted = false;
 long activeTwinkle[NEOPIXEL_NUM_PIXELS];
 long startOfLastLoop = 0l;
 
 char buf[80];
+
+// SETUP AND LOOP
 
 void setup() {
   Serial.begin(9600);
@@ -77,7 +97,7 @@ void setup() {
   strip.setBrightness(24);
   strip.begin();
   strip.show();
-
+  testServo.attach(SERVO_PIN, SERVO_PWM_MIN, SERVO_PWM_MAX);
   for (int i = 0; i < NEOPIXEL_NUM_PIXELS; i++) {
     activeTwinkle[i] = random(900, 1200);
   }
@@ -120,6 +140,8 @@ void updateHugPowerAndState() {
     power = constrain(power, 0, 1);
     if (power == 1) {
       state = ACTIVE;
+      activeServosLast = 0;
+      cooldownServosStarted = false;
     }
   } else if (state == ACTIVE) {
     power -= 1.0 * loopMs / HUG_ACTIVE_MS;
@@ -134,6 +156,18 @@ void updateHugPowerAndState() {
     if (power == 0) {
       state = CHARGE;
     }
+  }
+}
+
+void displayBreatheAnimation() {
+  long now = millis();
+  float theta = 2.0 * M_PI * now / BREATHE_MS;
+  double f = (sin(theta) + 1) / 2;
+  int r = 0;
+  int g = 0;
+  int b = 64 * f + 16;
+  for (int i = 0; i < NEOPIXEL_NUM_PIXELS; i++) {
+    strip.setPixelColor(i, r, g, b);
   }
 }
 
@@ -154,7 +188,6 @@ void displayPowerMeter(int r, int g, int b) {
 void displayActiveAnimation() {
   long now = millis();
   for (int i = 0; i < NEOPIXEL_NUM_PIXELS; i++) {
-    
     float theta = 2.0 * M_PI * now / activeTwinkle[i];
     double f = (sin(theta) + 1) / 2;
     int r = 255;
@@ -166,13 +199,33 @@ void displayActiveAnimation() {
 
 void displayHugPowerAndState() {
   if (state == CHARGE) {
-    displayPowerMeter(0, 255 * power, 255 * (1 - power));
+    if (power == 0) {
+      displayBreatheAnimation();
+    } else {
+      displayPowerMeter(0, 255 * power, 255 * (1 - power));
+    }
   } else if (state == ACTIVE) {
     displayActiveAnimation();
   } else { // state == COOLDOWN
     displayPowerMeter(255 * (0.75 + 0.25 * power), 0, 0);
   }
   strip.show();
+}
+
+void moveServos() {
+  if (state == ACTIVE) {
+    long theta = 180 * (1 - power);
+    if (theta - activeServosLast >= 5) {
+      testServo.write(theta);
+      sprintf(buf, "ACTIVE %ld -> %ld", activeServosLast, theta);
+      Serial.println(buf);
+      activeServosLast = theta;
+    }
+  } else if (state == COOLDOWN && !cooldownServosStarted) {
+    testServo.write(0);
+    cooldownServosStarted = true;
+    Serial.println("COOLDOWN");
+  }
 }
 
 long endOfLoopDelay() {
@@ -189,6 +242,7 @@ long endOfLoopDelay() {
 void loop() {
   updateHugPowerAndState();
   displayHugPowerAndState();
+  //moveServos();
   endOfLoopDelay();
   //sprintf(buf, "%d %d %d %ld", (int) distance, (int) (power * 100), state, elapsed);
   //Serial.println(buf);
