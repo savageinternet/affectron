@@ -48,6 +48,7 @@ void setup() {
    * TODO 1a: make the onboard LED blink if an object is closer than 10 cm.  See
    * the Blink example (File > Examples > 01.Basics > Blink) if you get stuck!
    */
+  pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
@@ -89,14 +90,19 @@ void loop() {
    * the Human Explanation Document for details, then fix the distance calculation
    * below!
    */
-  double distance = duration;
+  double distance = 0.01715 * duration;
   Serial.print(distance);
-  Serial.println(" cm???");
+  Serial.println(" cm");
 
   /*
    * TODO 1a: make the onboard LED blink if an object is closer than 10 cm.  See
    * the Blink example (File > Examples > 01.Basics > Blink) if you get stuck!
    */
+  if (distance < 10.0) {
+    digitalWrite(LED_BUILTIN, HIGH);
+  } else {
+    digitalWrite(LED_BUILTIN, LOW);
+  }
   
   delay(100);
 }
