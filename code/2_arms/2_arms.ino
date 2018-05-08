@@ -17,13 +17,6 @@
 
 // ULTRASONIC RANGE SENSOR
 
-/*
- * TODO 1.1a: copy the #define statements for TRIG_PIN, ECHO_PIN, and
- * ECHO_TIMEOUT_US here.
- * 
- * #define statements should almost always be placed above setup().
- */
-
 #define TRIG_PIN 2
 #define ECHO_PIN 3
 #define ECHO_TIMEOUT_US 40000
@@ -150,6 +143,9 @@ void moveServo() {
   /*
    * TODO 2.2a: make the servo wave back and forth while keeping the light
    * animation smooth by only moving it a bit each time moveServo() is called.
+   * 
+   * You'll also have to create a global variable to do this; just put it outside
+   * all functions.
    */
 
   /*
