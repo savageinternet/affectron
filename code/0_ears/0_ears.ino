@@ -45,7 +45,7 @@ void setup() {
   pinMode(ECHO_PIN, INPUT);
 
   /*
-   * TODO 1a: make the onboard LED blink if an object is closer than 10 cm.  See
+   * TODO 0.1a: make the onboard LED blink if an object is closer than 10 cm.  See
    * the Blink example (File > Examples > 01.Basics > Blink) if you get stuck!
    */
 }
@@ -85,7 +85,7 @@ void loop() {
   }
 
   /*
-   * TODO 0: we need to do some PHYSICS MATH to convert our duration into distance.  See
+   * TODO 0.0: we need to do some PHYSICS MATH to convert our duration into distance.  See
    * the Human Explanation Document for details, then fix the distance calculation
    * below!
    */
@@ -94,7 +94,7 @@ void loop() {
   Serial.println(" cm???");
 
   /*
-   * TODO 1a: make the onboard LED blink if an object is closer than 10 cm.  See
+   * TODO 0.1b: make the onboard LED blink if an object is closer than 25 cm.  See
    * the Blink example (File > Examples > 01.Basics > Blink) if you get stuck!
    */
   
