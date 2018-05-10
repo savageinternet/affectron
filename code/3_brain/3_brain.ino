@@ -58,7 +58,8 @@ Servo servo;
  * This is an "enum" describing the possible states Affectron can be in.  Enums are useful when you have
  * a limited set of possible values for variables, and you want to give them all human-readable names.
  * 
- * We'll start with 
+ * We'll start with these first three states, then eventually add the COOLDOWN state once the first
+ * three are working.
  */
 enum AffectronState {
   SEEKING_HUMAN,
@@ -180,7 +181,11 @@ void displayColors() {
 
 void moveServo() {
   /*
-   * TODO 3.4a: make the robot wave back and forth in moveServo().
+   * TODO 3.4a: make the robot wave back and forth in moveServo().  You will likely have
+   * to introduce two global variables for this: "servoAngle" and "servoAngleChange".
+   * As the names suggest, "servoAngle" keeps track of the current servo angle, while
+   * "servoAngleChange" tracks how much to move the servo each time we call moveServo()
+   * (and which direction to move it in).
    */
   int angle = map(pixelsToLight, 0, 16, 0, 180);
   servo.write(angle);
@@ -190,6 +195,9 @@ void resetServo() {
   /*
    * TODO 3.4b: make the robot return its arm to angle 0 in resetServo(),
    * and call resetServo() from the COOLDOWN state in updateState() below.
+   * 
+   * Make sure you set any global variables you used for moveServo() back to
+   * their initial state, too!
    */
 }
 
@@ -218,9 +226,9 @@ void updateState() {
     moveServo();
 
     /*
-     * TODO 3.0d: if we've spent DEPLOYING_SERVICES_MS milliseconds in the DEPLOYING_SERVICES
-     * state, enter the SEEKING_HUMAN state.  (And - you guessed it - set "enteredStateAt"!
-     * We have to do this every time we change state.)
+     * TODO 3.0d: if we've spent at least DEPLOYING_SERVICES_MS milliseconds in the
+     * DEPLOYING_SERVICES state, enter the SEEKING_HUMAN state.  (And - you guessed
+     * it - set "enteredStateAt"!  We have to do this every time we change state.)
      */
 
     /*
@@ -244,8 +252,11 @@ void endOfLoopDelay() {
    * loop() took!  We need to figure out how much time to wait to make up 50ms in total, then
    * wait that long.  (Also, if we already took more than 50ms, we shouldn't wait at all.)
    * 
-   * You'll need a global variable, say "startedLoop", and you'll need to use millis() to keep
-   * track of timing.  Good luck!
+   * You'll need a global variable, say "startedLoopAt", and you'll need to use millis() to keep
+   * track of timing.  Also, one word of warning about "unsigned long" variables: they cannot
+   * take negative values.
+   * 
+   * Good luck!
    */
   delay(100);
 }
