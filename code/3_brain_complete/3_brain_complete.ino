@@ -92,7 +92,11 @@ unsigned long enteredStateAt = 0;
 unsigned long startedLoopAt = 0;
 
 /*
- * These control the servo angle and direction.  When the servo is waving, we'll 
+ * These control the servo angle and direction.  When the servo is waving, we'll change the angle
+ * by "servoAngleChange" each time moveServo() is called.
+ * 
+ * To change the rate at which the servo moves, try changing "servoAngleChange" to any value between
+ * 1 and 30.  (The servo isn't fast enough to handle higher values.)
  */
 int servoAngle = 0;
 int servoAngleChange = 10;
@@ -133,11 +137,23 @@ double measureDistance() {
 }
 
 void displayColors() {
+  /*
+   * Several of the states need these two pieces of information, so we set them up top
+   * to make them available to every branch of the "if" statement.
+   */
   unsigned long now = millis();
   unsigned long timeInState = now - enteredStateAt;
   if (state == SEEKING_HUMAN) {
     int pixelToLight = timeInState / 100;
+    /*
+     * The "remainder" operator in action!  This divides "pixelToLight" by 16, then
+     * takes the remainder so that we can get a valid LED number.
+     */
     pixelToLight = pixelToLight % 16;
+    /*
+     * Even though we're only turning one light on, we still need the "for" loop to
+     * set all the other lights off.
+     */
     for (int i = 0; i < 16; i = i + 1) {
       if (i == pixelToLight) {
         strip.setPixelColor(i, 0, 0, 255);
@@ -146,6 +162,9 @@ void displayColors() {
       }
     }
   } else if (state == HUMAN_NEARBY) {
+    /*
+     * This next part is similar to the previous code.
+     */
     int pixelsToLight = timeInState / 100;
     pixelsToLight = constrain(pixelsToLight, 0, 16);
     for (int i = 0; i < 16; i = i + 1) {
@@ -156,72 +175,118 @@ void displayColors() {
       }
     }
   } else if (state == DEPLOYING_SERVICES) {
+    /*
+     * Nothing fancy here: setting all the pixels to the same color is relatively
+     * straightforward.
+     */
     for (int i = 0; i < 16; i = i + 1) {
       strip.setPixelColor(i, 0, 255, 0);
     }
   } else if (state == COOLDOWN) {
+    /*
+     * Similar to HUMAN_NEARBY, but:
+     * 
+     * - COOLDOWN lasts 6.4s, or 400ms per pixel, so we divide by 400 instead of 100;
+     * - we're turning pixels off over time, so we flip the on / off states in our
+     *   "if" statement.
+     */
     int pixelsToHide = timeInState / 400;
     pixelsToHide = constrain(pixelsToHide, 0, 16);
     for (int i = 0; i < 16; i = i + 1) {
-      if (i >= pixelsToHide) {
-        strip.setPixelColor(i, 255, 0, 0);
-      } else {
+      if (i < pixelsToHide) {
         strip.setPixelColor(i, 0, 0, 0);
+      } else {
+        strip.setPixelColor(i, 255, 0, 0);
       }
     }
   }
+  /*
+   * Finally, all changes to the lights require a call to strip.show(), so we do that
+   * outside the "if" statement at the bottom.
+   */
   strip.show();
 }
 
 void moveServo() {
+  /*
+   * Now we can see what this means: we're adding "servoAngleChange" to "servoAngle"
+   * each time moveServo() is called.  Since "servoAngleChange" is set to 10, we'll move
+   * by 10 degrees every 50ms.
+   */
   servoAngle = servoAngle + servoAngleChange;
   servoAngle = constrain(servoAngle, 0, 180);
   if (servoAngle == 0 || servoAngle == 180) {
+    /*
+     * When we reach either end of the servo range, we switch direction.  This is an
+     * easy way to cover both ends of the range at once, but you could equally well
+     * split it into two separate cases.
+     */
     servoAngleChange = -servoAngleChange;
   }
   servo.write(servoAngle);
 }
 
 void resetServo() {
+  /*
+   * Note that we reset the values of our global servo variables to their initial
+   * values.  This is good practice, especially if you want your robots to have predictable
+   * behavior as humans keep interacting with them.
+   */
   servoAngle = 0;
   servoAngleChange = 10;
   servo.write(0);
 }
 
 void updateState() {
+  /*
+   * Again, we get these two pieces of information outside the "if" statement.
+   */
+  unsigned long now = millis();
+  unsigned long timeInState = now - enteredStateAt;
+  /*
+   * updateState() is the heart of our state machine: a giant "if" statement whose branches
+   * describe what happens in each state and when to move between states.  The global variable
+   * "state" keeps track of the current state.
+   */
   if (state == SEEKING_HUMAN) {
     double distanceToHuman = measureDistance();
     boolean humanNearby = (distanceToHuman <= 25);
 
     if (humanNearby) {
       state = HUMAN_NEARBY;
-      enteredStateAt = millis();
+      enteredStateAt = now;
     }
   } else if (state == HUMAN_NEARBY) {
     double distanceToHuman = measureDistance();
     boolean humanNearby = (distanceToHuman <= 25);
 
-    unsigned long now = millis();
+    /*
+     * This is the most complicated transition, as Affectron can move to two possible
+     * states depending on what's going on.
+     */
     if (!humanNearby) {
       state = SEEKING_HUMAN;
       enteredStateAt = now;
-    } else if (now - enteredStateAt >= HUMAN_NEARBY_MS) {
+    } else if (timeInState >= HUMAN_NEARBY_MS) {
+      /*
+       * Here's an example of a time-triggered transition: we move to the next state once
+       * a certain amount of time has elapsed.  We reuse this idea in DEPLOYING_SERVICES
+       * and COOLDOWN below.
+       */
       state = DEPLOYING_SERVICES;
       enteredStateAt = now;
     }
   } else if (state == DEPLOYING_SERVICES) {
     moveServo();
 
-    unsigned long now = millis();
-    if (now - enteredStateAt >= DEPLOYING_SERVICES_MS) {
+    if (timeInState >= DEPLOYING_SERVICES_MS) {
       state = COOLDOWN;
       enteredStateAt = now;
     }
   } else if (state == COOLDOWN) {
     resetServo();
     
-    unsigned long now = millis();
-    if (now - enteredStateAt >= COOLDOWN_MS) {
+    if (timeInState >= COOLDOWN_MS) {
       state = SEEKING_HUMAN;
       enteredStateAt = now;
     }
@@ -232,6 +297,13 @@ void endOfLoopDelay() {
   unsigned long shouldEndLoopAt = startedLoopAt + 50;
   unsigned long now = millis();
   if (now < shouldEndLoopAt) {
+    /*
+     * Note that we only perform the subtraction when we're sure the result will be
+     * positive! 
+     * 
+     * If you try to give an "unsigned long" variable a negative value, it will
+     * "wrap around" and instead be set to a *really* high positive value.
+     */
     unsigned long toDelay = shouldEndLoopAt - now;
     delay(toDelay);
   }
