@@ -253,8 +253,8 @@ void endOfLoopDelay() {
    * wait that long.  (Also, if we already took more than 50ms, we shouldn't wait at all.)
    * 
    * You'll need a global variable, say "startedLoopAt", and you'll need to use millis() to keep
-   * track of timing.  Also, one word of warning about "unsigned long" variables: they cannot
-   * take negative values.
+   * track of timing. One word of warning about "unsigned long" variables: they cannot take negative
+   * values.
    * 
    * Good luck!
    */
