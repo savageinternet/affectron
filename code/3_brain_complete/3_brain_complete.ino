@@ -174,7 +174,7 @@ void displayColors() {
 }
 
 void moveServo() {
-  servoAngle = servoAngle + servoAngleChange * 10;
+  servoAngle = servoAngle + servoAngleChange;
   servoAngle = constrain(servoAngle, 0, 180);
   if (servoAngle == 0 || servoAngle == 180) {
     servoAngleChange = -servoAngleChange;
@@ -201,9 +201,13 @@ void updateState() {
     double distanceToHuman = measureDistance();
     boolean humanNearby = (distanceToHuman <= 25);
 
+    unsigned long now = millis();
     if (!humanNearby) {
       state = SEEKING_HUMAN;
-      enteredStateAt = millis();
+      enteredStateAt = now;
+    } else if (now - enteredStateAt >= HUMAN_NEARBY_MS) {
+      state = DEPLOYING_SERVICES;
+      enteredStateAt = now;
     }
   } else if (state == DEPLOYING_SERVICES) {
     moveServo();
