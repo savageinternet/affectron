@@ -46,6 +46,11 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NEOPIXEL_NUM_PIXELS, NEOPIXEL_PIN, N
 
 // SERVOS
 
+/*
+ * Like most humanoid robots, Affectron has two arms - so we have to set up two
+ * servos here.  Each servo has its own pin, its own PWM minimum and maximum lengths...
+ */
+
 #define SERVO_LEFT_PIN A0
 #define SERVO_LEFT_MIN 850
 #define SERVO_LEFT_MAX 1400
@@ -54,6 +59,9 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NEOPIXEL_NUM_PIXELS, NEOPIXEL_PIN, N
 #define SERVO_RIGHT_MIN 850
 #define SERVO_RIGHT_MAX 1500
 
+/*
+ * ...and its own Servo variable.
+ */
 Servo servoLeft;
 Servo servoRight;
 
@@ -67,7 +75,14 @@ enum AffectronState {
 };
 
 #define HUMAN_NEARBY_MS 1600
+
+/*
+ * Aren't services more satisfying when they take longer?  But of course!
+ * We've doubled the amount of service Affectron deploys here - no need to
+ * thank us.
+ */
 #define DEPLOYING_SERVICES_MS 6400
+
 #define COOLDOWN_MS 6400
 
 // GLOBAL VARIABLES
@@ -75,11 +90,12 @@ enum AffectronState {
 unsigned long enteredStateAt = 0;
 unsigned long startedLoopAt = 0;
 
+/*
+ * Both servos now start at 90 degrees.  We also got rid of our "servoAngleChange"
+ * variable - we're now handling this a slightly different way right in moveServo().
+ */
 int servoLeftAngle = 90;
-int servoLeftAngleChange = 2;
-
 int servoRightAngle = 90;
-int servoRightAngleChange = -2;
 
 AffectronState state = SEEKING_HUMAN;
 
@@ -156,8 +172,27 @@ void displayColors() {
   strip.show();
 }
 
+/*
+ * moveServo() gets a slight upgrade: we pass in the "timeInState" parameter so
+ * that we can more precisely control what happens at each phase of the service
+ * deployment cycle.j
+ * 
+ * (And yes, we *could* change our state machine to break DEPLOYING_SERVICES into
+ * several sub-states, each controlling one phase of service deployment.  There's
+ * usually more than one way to solve a problem in programming / robotics!)
+ */
 void moveServo(unsigned long timeInState) {
   if (timeInState < 1600) {
+    /*
+     * First phase of service deployment.  Note that the left arm moves from
+     * 90 to 180 degrees, while the right arm moves from 90 to 0 degrees.  The
+     * servos mirror each other, so they must move in opposite directions.
+     * 
+     * Note also that, since we don't have our servo change variables anymore, we
+     * put the angle change values right in here.  We've slowed this down quite
+     * a bit to account for the shorter range of motion and longer service
+     * deployment time!
+     */
     servoLeftAngle = servoLeftAngle + 3;
     servoLeftAngle = constrain(servoLeftAngle, 90, 180);
     servoLeft.write(servoLeftAngle);
@@ -165,7 +200,16 @@ void moveServo(unsigned long timeInState) {
     servoRightAngle = servoRightAngle - 3;
     servoRightAngle = constrain(servoRightAngle, 0, 90);
     servoRight.write(servoRightAngle);
+  } else if (timeInState <= 4800) {
+    /*
+     * Second phase: maintain position.
+     */
+    servoLeft.write(180);
+    servoRight.write(0);
   } else if (timeInState > 4800) {
+    /*
+     * Final phase: move both servos back to 90 degrees.
+     */
     servoLeftAngle = servoLeftAngle - 3;
     servoLeftAngle = constrain(servoLeftAngle, 90, 180);
     servoLeft.write(servoLeftAngle);
@@ -177,12 +221,14 @@ void moveServo(unsigned long timeInState) {
 }
 
 void resetServo() {
+  /*
+   * Again, make sure everything gets reset in resetServo(), including our global
+   * variables.
+   */
   servoLeftAngle = 90;
-  servoLeftAngleChange = 5;
   servoLeft.write(servoLeftAngle);
   
   servoRightAngle = 90;
-  servoRightAngleChange = -5;
   servoRight.write(servoRightAngle);
 }
 
@@ -209,6 +255,11 @@ void updateState() {
       enteredStateAt = now;
     }
   } else if (state == DEPLOYING_SERVICES) {
+    /*
+     * Remember how "timeInState" is available for use in all of our states?
+     * Here we pass it into moveServo(); see that function for more details
+     * on how we're using it to control the servos.
+     */
     moveServo(timeInState);
 
     if (timeInState >= DEPLOYING_SERVICES_MS) {
