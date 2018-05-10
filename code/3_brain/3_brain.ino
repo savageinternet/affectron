@@ -253,10 +253,8 @@ void endOfLoopDelay() {
    * wait that long.  (Also, if we already took more than 50ms, we shouldn't wait at all.)
    * 
    * You'll need a global variable, say "startedLoopAt", and you'll need to use millis() to keep
-   * track of timing.  Also, while you will typically want to store the result of variable subtraction 
-   * in a variable of the same type (e.g., if you subtract a "double" from a "double", you want to store the
-   * result in a "double" rather than an "int") one word of warning about "unsigned long" variables:
-   * they cannot take negative values.
+   * track of timing. One word of warning about "unsigned long" variables: they cannot take negative
+   * values.
    * 
    * Good luck!
    */
