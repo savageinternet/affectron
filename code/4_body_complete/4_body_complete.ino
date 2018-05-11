@@ -1,32 +1,13 @@
 /**
  * Affectron by Savage Internet
- * HUMAN, BRAIN ME
+ * HUMAN, I HAVE NO BODY
  * 
- * In this step, you'll give the Affectron four operating states: SEEKING_HUMAN,
- * HUMAN_NEARBY, DEPLOYING_SERVICE, and COOLDOWN.
+ * In this step, you get a bit of a break: we've extended the code from "3_brain_complete"
+ * to include two servos, one for each arm.  You just have to upload the code, assemble
+ * the robot, and accept its wonderful services!
  * 
- * In the SEEKING_HUMAN state, the Affectron uses the HC-SR04 ultrasonic range sensor
- * to find a human.
- * 
- * When a human is found, Affectron enters the HUMAN_NEARBY state, where it uses the
- * HC-SR04 to check whether the human remains nearby.
- * 
- * If the human remains nearby long enough, Affectron enters the DEPLOYING_SERVICE
- * state, where it uses its lights and servo to respond to the human's presence.
- * 
- * After it finishes the light-and-servo show, Affectron enters COOLDOWN state,
- * where it rests a bit so it can get ready to detect humans again.
- * 
- * Finally, after a few seconds, Affectron returns to the SEEKING_HUMAN state.
- * 
- * To keep track of these states, we'll use a "state machine".  State machines are
- * a common programming technique in robotics: they let us keep track of which state
- * a robot is in, how it moves from one state to another, and what it does in each
- * state.
- * 
- * There's a *lot* of programming in this step.  If you get stuck, you can always
- * sneak a peek at the "3_brain_complete" sketch!  Try to get as far as you can
- * first, though.
+ * As usual, we've commented things of note in the code.  Once you've played around with
+ * Affectron for a bit, take a look at "5_body_advanced" - there's even more goodies in there!
  */
 
 #include <Adafruit_NeoPixel.h>
