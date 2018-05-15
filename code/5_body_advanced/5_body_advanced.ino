@@ -283,7 +283,11 @@ void displayColors() {
  */
 int servoTween(double t, int angleStart, int angleEnd) {
   int angle = (int) ((1 - t) * angleStart + t * angleEnd + 0.5);
-  return constrain(angle, angleStart, angleEnd);
+  if (angleStart < angleEnd) {
+    return constrain(angle, angleStart, angleEnd);
+  } else {
+    return constrain(angle, angleEnd, angleStart);
+  }
 }
 
 /*
@@ -418,9 +422,9 @@ void updateState() {
 
 long getLoopMs() {
   if (state == SEEKING_HUMAN || state == HUMAN_NEARBY) {
-    return 15;
+    return 50;
   }
-  return 50;
+  return 15;
 }
 
 void endOfLoopDelay() {
