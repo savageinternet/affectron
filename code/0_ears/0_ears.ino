@@ -12,6 +12,12 @@
  */
 
 /*
+ * This pin is for the onboard LED. On most Arduino boards, this is located on pin 13.
+ */
+
+#define LED_BUILTIN 13
+
+/*
  * Pins for the ultrasonic range sensor.  These are labelled "Trig" and "Echo"
  * on the board; Trig sends an ultrasonic pulse, Echo listens for the pulse to
  * bounce back.
@@ -96,6 +102,7 @@ void loop() {
   /*
    * TODO 0.1b: make the onboard LED blink if an object is closer than 25 cm.  See
    * the Blink example (File > Examples > 01.Basics > Blink) if you get stuck!
+   * You can use LED_BUILTIN as your pin variable for this bit. (See top of code.)
    */
   
   delay(100);
