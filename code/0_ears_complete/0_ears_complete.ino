@@ -12,6 +12,12 @@
  */
 
 /*
+ * This pin is for the onboard LED. On most Arduino boards, this is located on pin 13.
+ */
+
+#define LED_BUILTIN 13
+
+/*
  * Pins for the ultrasonic range sensor.  These are labelled "Trig" and "Echo"
  * on the board; Trig sends an ultrasonic pulse, Echo listens for the pulse to
  * bounce back.
